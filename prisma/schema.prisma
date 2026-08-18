@@ -1,0 +1,404 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  super_admin
+  side_admin
+}
+
+enum Side {
+  bride
+  groom
+}
+
+enum RoomType {
+  single
+  double
+  suite
+}
+
+enum ExpenseStatus {
+  paid
+  pending
+  partially_paid
+  overdue
+}
+
+enum PaymentStatus {
+  upcoming
+  paid
+  partially_paid
+  overdue
+}
+
+enum DisplayGroup {
+  bride
+  groom
+  joint
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model AdminUser {
+  id                   String               @id @default(cuid())
+  email                String               @unique
+  password_hash        String
+  name                 String
+  role                 Role
+  side                 Side?
+  active               Boolean              @default(true)
+  created_at           DateTime             @default(now())
+  updated_at           DateTime             @updatedAt
+  passwordResetTokens  PasswordResetToken[]
+
+  @@map("admin_users")
+}
+
+model PasswordResetToken {
+  id            String    @id @default(cuid())
+  admin_user_id String
+  token_hash    String    @unique
+  expires_at    DateTime
+  used          Boolean   @default(false)
+  created_at    DateTime  @default(now())
+  adminUser     AdminUser @relation(fields: [admin_user_id], references: [id], onDelete: Cascade)
+
+  @@index([admin_user_id])
+  @@map("password_reset_tokens")
+}
+
+model Guest {
+  id               String                  @id @default(cuid())
+  name             String
+  email            String?
+  phone            String?
+  address          String?
+  city             String?
+  state            String?
+  zip              String?
+  household_group  String?
+  side             Side
+  invitation_sent  Boolean                 @default(false)
+  rsvp_token       String?                 @unique
+  notes            String?
+  arrival_date     String?
+  departure_date   String?
+  created_at       DateTime                @default(now())
+  updated_at       DateTime                @updatedAt
+  familyMembers    FamilyMember[]
+  rsvpResponses    RsvpResponse[]
+  roomAssignments  RoomAssignment[]
+  eventInvitations GuestEventInvitation[]
+
+  @@index([rsvp_token])
+  @@map("guests")
+}
+
+model FamilyMember {
+  id         String             @id @default(cuid())
+  guest_id   String
+  name       String
+  is_child   Boolean            @default(false)
+  created_at DateTime           @default(now())
+  guest      Guest              @relation(fields: [guest_id], references: [id], onDelete: Cascade)
+  rsvps      FamilyMemberRsvp[]
+  roomAssignments RoomAssignment[]
+
+  @@index([guest_id])
+  @@map("family_members")
+}
+
+model Event {
+  id                String             @id @default(cuid())
+  name              String
+  date              DateTime
+  start_time        String?
+  end_time          String?
+  venue_name        String?
+  venue_address     String?
+  description       String?
+  dress_code        String?
+  map_url           String?
+  image_url         String?
+  image_alt         String?
+  managed_by        Side
+  display_group     DisplayGroup
+  sort_order        Int                @default(0)
+  created_at        DateTime           @default(now())
+  updated_at        DateTime           @updatedAt
+  rsvpResponses     RsvpResponse[]
+  familyMemberRsvps FamilyMemberRsvp[]
+  guestInvitations  GuestEventInvitation[]
+
+  @@map("events")
+}
+
+model RsvpResponse {
+  id                   String   @id @default(cuid())
+  guest_id             String
+  event_id             String
+  attending            Boolean?
+  dietary_restrictions String?
+  arrival_time         String?
+  departure_time       String?
+  submitted_at         DateTime @default(now())
+  updated_at           DateTime @updatedAt
+  guest                Guest    @relation(fields: [guest_id], references: [id], onDelete: Cascade)
+  event                Event    @relation(fields: [event_id], references: [id], onDelete: Cascade)
+
+  @@unique([guest_id, event_id])
+  @@index([guest_id])
+  @@index([event_id])
+  @@map("rsvp_responses")
+}
+
+model FamilyMemberRsvp {
+  id                   String       @id @default(cuid())
+  family_member_id     String
+  event_id             String
+  attending            Boolean?
+  dietary_restrictions String?
+  familyMember         FamilyMember @relation(fields: [family_member_id], references: [id], onDelete: Cascade)
+  event                Event        @relation(fields: [event_id], references: [id], onDelete: Cascade)
+
+  @@unique([family_member_id, event_id])
+  @@index([family_member_id])
+  @@index([event_id])
+  @@map("family_member_rsvps")
+}
+
+model GuestEventInvitation {
+  id         String   @id @default(cuid())
+  guest_id   String
+  event_id   String
+  created_at DateTime @default(now())
+  guest      Guest    @relation(fields: [guest_id], references: [id], onDelete: Cascade)
+  event      Event    @relation(fields: [event_id], references: [id], onDelete: Cascade)
+
+  @@unique([guest_id, event_id])
+  @@index([guest_id])
+  @@index([event_id])
+  @@map("guest_event_invitations")
+}
+
+model DuplicateDismissal {
+  id           String   @id @default(cuid())
+  side         Side
+  a_key        String
+  b_key        String
+  dismissed_by String
+  created_at   DateTime @default(now())
+
+  @@unique([side, a_key, b_key])
+  @@index([side])
+  @@map("duplicate_dismissals")
+}
+
+model Hotel {
+  id             String   @id @default(cuid())
+  name           String
+  address        String?
+  city           String?
+  map_url        String?
+  image_url      String?
+  image_alt      String?
+  total_rooms    Int      @default(0)
+  check_in_date  DateTime?
+  check_out_date DateTime?
+  contact_phone  String?
+  distance_info  String?
+  side           Side
+  notes          String?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+  rooms          Room[]
+
+  @@map("hotels")
+}
+
+model Room {
+  id          String           @id @default(cuid())
+  hotel_id    String
+  room_number String
+  room_type   RoomType
+  capacity    Int              @default(2)
+  floor       String?
+  notes       String?
+  hotel       Hotel            @relation(fields: [hotel_id], references: [id], onDelete: Cascade)
+  assignments RoomAssignment[]
+
+  @@index([hotel_id])
+  @@map("rooms")
+}
+
+model RoomAssignment {
+  id               String        @id @default(cuid())
+  room_id          String
+  guest_id         String
+  family_member_id String?
+  check_in         DateTime?
+  check_out        DateTime?
+  notes            String?
+  assigned_at      DateTime      @default(now())
+  room             Room          @relation(fields: [room_id], references: [id], onDelete: Cascade)
+  guest            Guest         @relation(fields: [guest_id], references: [id], onDelete: Restrict)
+  familyMember     FamilyMember? @relation(fields: [family_member_id], references: [id], onDelete: Cascade)
+
+  @@index([room_id])
+  @@index([guest_id])
+  @@index([family_member_id])
+  @@map("room_assignments")
+}
+
+model BudgetCategory {
+  id               String    @id @default(cuid())
+  name             String
+  budgeted_amount  Decimal   @default(0)
+  sort_order       Int       @default(0)
+  side             Side
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+  expenses         Expense[]
+
+  @@map("budget_categories")
+}
+
+model Vendor {
+  id              String    @id @default(cuid())
+  name            String
+  category        String?
+  contact_name    String?
+  phone           String?
+  email           String?
+  website         String?
+  contract_amount Decimal?
+  side            Side
+  notes           String?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  expenses        Expense[]
+  payments        Payment[]
+
+  @@map("vendors")
+}
+
+model Expense {
+  id              String        @id @default(cuid())
+  category_id     String?
+  vendor_id       String?
+  description     String
+  amount          Decimal
+  date            DateTime?
+  payment_method  String?
+  status          ExpenseStatus @default(pending)
+  amount_paid     Decimal       @default(0)
+  exchange_rate   Decimal?
+  side            Side
+  notes           String?
+  receipt_url     String?
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
+  category        BudgetCategory? @relation(fields: [category_id], references: [id], onDelete: SetNull)
+  vendor          Vendor?         @relation(fields: [vendor_id], references: [id], onDelete: SetNull)
+
+  @@index([category_id])
+  @@index([vendor_id])
+  @@index([side])
+  @@map("expenses")
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  vendor_id   String
+  amount      Decimal
+  due_date    DateTime?
+  paid_date   DateTime?
+  status        PaymentStatus @default(upcoming)
+  amount_paid   Decimal       @default(0)
+  exchange_rate Decimal?
+  method        String?
+  notes       String?
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+  vendor      Vendor        @relation(fields: [vendor_id], references: [id], onDelete: Cascade)
+
+  @@index([vendor_id])
+  @@map("payments")
+}
+
+model SiteImage {
+  id                String   @id @default(cuid())
+  slot              String   @unique
+  file_path         String
+  alt_text          String?
+  original_filename String?
+  uploaded_at       DateTime @default(now())
+
+  @@map("site_images")
+}
+
+model GalleryPhoto {
+  id                String   @id @default(cuid())
+  file_path         String
+  alt_text          String?
+  original_filename String?
+  sort_order        Int      @default(0)
+  uploaded_at       DateTime @default(now())
+
+  @@map("gallery_photos")
+}
+
+model SiteSettings {
+  id         String   @id @default(cuid())
+  key        String   @unique
+  value      String
+  updated_at DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+model AdminChatMessage {
+  id         String   @id @default(cuid())
+  side       Side
+  role       String
+  content    String   @db.Text
+  created_at DateTime @default(now())
+
+  @@index([side, created_at])
+  @@map("admin_chat_messages")
+}
+
+model GoogleOAuthToken {
+  id            String   @id @default(cuid())
+  admin_user_id String   @unique
+  access_token  String   @db.Text
+  refresh_token String   @db.Text
+  expires_at    DateTime
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@map("google_oauth_tokens")
+}
+
+model GoogleContact {
+  id         String   @id @default(cuid())
+  side       Side
+  google_id  String
+  name       String
+  phone      String?
+  email      String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([side, google_id])
+  @@index([side])
+  @@map("google_contacts")
+}

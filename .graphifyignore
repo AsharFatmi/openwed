@@ -1,0 +1,16 @@
+# Dependencies and Builds
+node_modules/
+.next/
+dist/
+build/
+out/
+.vercel/
+coverage/
+
+# Storybook & Testing Artifacts
+.storybook/
+__snapshots__/
+
+# Generated types and caches
+*.tsbuildinfo
+.turbo/
