@@ -45,14 +45,32 @@ A full-stack wedding website platform for multi-day celebrations. Two families (
 
 ## Getting Started
 
-### Prerequisites
+### Quick start (Docker — recommended)
+
+The fastest way to try OpenWed — no Node.js, no database setup:
+
+```bash
+git clone https://github.com/AsharFatmi/openwed.git
+cd openwed
+docker compose up -d --build
+```
+
+Then open [http://localhost:3000](http://localhost:3000).
+
+- The compose file starts PostgreSQL + the app, applies the schema, and seeds a super admin automatically.
+- Default admin login: `super@admin.com` / `SuperAdmin123!` (override with `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD` env vars).
+- Optional features (Chotu AI chat, email invites, Google Maps, image uploads) are disabled until you add their keys — see `docker-compose.yml` for the commented-out env vars.
+
+### Manual setup
+
+#### Prerequisites
 - Node.js 18+
 - Aiven PostgreSQL (or any PostgreSQL instance) — download the CA cert
 - Google Maps API key
 - Resend API key + verified sending domain
 - Cloudflare R2 bucket (for image uploads)
 
-### Environment Variables
+#### Environment Variables
 
 Create a `.env` file in the project root:
 

@@ -14,9 +14,18 @@ const sslCert = process.env.DB_SSL_CERT
     ? fs.readFileSync(process.env.DB_SSL_CERT_PATH).toString()
     : null
 
+// SSL on only when a CA cert is provided or the URL explicitly requests it
+// (e.g. Neon/Supabase `sslmode=require`). Local Postgres (Docker) has no SSL.
+const sslMode = (process.env.DATABASE_URL ?? '').match(/[?&]sslmode=([^&]*)/)?.[1]
+const ssl = sslCert
+  ? { ca: sslCert }
+  : sslMode === 'require' || sslMode === 'verify-full' || sslMode === 'verify-ca'
+    ? { rejectUnauthorized: false }
+    : false
+
 const pool = globalForPrisma.pgPool ?? new pg.Pool({
   connectionString,
-  ssl: sslCert ? { ca: sslCert } : { rejectUnauthorized: false },
+  ssl,
   max: 1,
   idleTimeoutMillis: 5000,
   connectionTimeoutMillis: 5000,
