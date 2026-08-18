@@ -61,3 +61,5 @@ graphify-out/cost.json
 graphify-out/GRAPH_REPORT.md
 graphify-out/.graphify_python
 graphify-out/.graphify_root
+# Internal planning docs (not for public release)
+docs/ROADMAP.md
